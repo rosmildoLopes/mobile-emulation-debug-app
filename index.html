@@ -13,6 +13,7 @@
       --text: #fafafa;
       --muted: #a1a1aa;
       --accent: #22c55e;
+      --blue: #60a5fa;
     }
 
     * {
@@ -35,13 +36,17 @@
       margin: 0 auto;
     }
 
-    .hero {
+    .hero,
+    .card {
       border: 1px solid var(--line);
       background: rgba(17,17,24,.84);
+      box-shadow: 0 24px 80px rgba(0,0,0,.25);
+    }
+
+    .hero {
       border-radius: 28px;
       padding: 28px;
       margin-bottom: 18px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.35);
     }
 
     h1 {
@@ -76,11 +81,43 @@
       background: var(--accent);
     }
 
-    .actions {
+    .card {
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .launcher {
+      display: grid;
+      gap: 14px;
+    }
+
+    .urlbar {
       display: flex;
-      flex-wrap: wrap;
       gap: 10px;
-      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      flex: 1;
+      min-width: 260px;
+      border: 1px solid #334155;
+      background: #030306;
+      color: #fff;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--blue);
     }
 
     button {
@@ -88,37 +125,39 @@
       background: #18181b;
       color: #fff;
       border-radius: 14px;
-      padding: 10px 14px;
+      padding: 11px 15px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 800;
     }
 
     button:hover {
       border-color: var(--accent);
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 16px;
+    .primary {
+      background: rgba(34,197,94,.14);
+      border-color: rgba(34,197,94,.45);
     }
 
-    .card {
-      grid-column: span 6;
-      border: 1px solid var(--line);
-      background: rgba(17,17,24,.82);
-      border-radius: 22px;
-      padding: 20px;
-      overflow: hidden;
+    .secondary {
+      background: rgba(96,165,250,.12);
+      border-color: rgba(96,165,250,.4);
     }
 
-    .card.full {
-      grid-column: 1 / -1;
+    .warning {
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,.25);
+      background: rgba(251,191,36,.08);
+      border-radius: 18px;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.55;
     }
 
-    h2 {
-      font-size: 17px;
-      margin: 0 0 16px;
+    .quick {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .kv {
@@ -148,7 +187,7 @@
       font-size: 12px;
       line-height: 1.55;
       color: #86efac;
-      max-height: 520px;
+      max-height: 420px;
       overflow: auto;
     }
 
@@ -160,10 +199,6 @@
       .hero {
         padding: 20px;
         border-radius: 22px;
-      }
-
-      .card {
-        grid-column: 1 / -1;
       }
 
       .kv {
@@ -182,236 +217,150 @@
     <section class="hero">
       <h1>Mobile Emulation Debug</h1>
       <p>
-        App de escritorio para comparar señales visibles desde JavaScript dentro de Electron/Chromium.
-        Sirve para QA responsive, diagnóstico de entorno y exportación de snapshots.
+        App de escritorio para abrir una ventana de navegación en modo mobile de QA.
+        Permite probar cómo se comportan sitios web con viewport, touch y User-Agent de Android.
       </p>
 
       <div class="badge">
         <span class="dot"></span>
-        <span id="status">Cargando...</span>
-      </div>
-
-      <div class="actions">
-        <button onclick="copySnapshot()">Copiar JSON</button>
-        <button onclick="downloadSnapshot()">Descargar snapshot</button>
-        <button onclick="location.reload()">Recargar</button>
+        <span id="status">App local activa</span>
       </div>
     </section>
 
-    <section class="grid">
-      <article class="card">
-        <h2>Resumen JS</h2>
-        <div class="kv" id="summary"></div>
-      </article>
+    <section class="card">
+      <h2>Navegador Android emulado</h2>
 
-      <article class="card">
-        <h2>User-Agent Client Hints</h2>
-        <pre id="uaData">Cargando...</pre>
-      </article>
+      <div class="warning">
+        Esta herramienta es para QA/testing. No convierte la PC en un Android real y no garantiza que servicios externos interpreten la sesión como un teléfono físico.
+      </div>
 
-      <article class="card full">
-        <h2>Información del sistema</h2>
-        <pre id="system">Cargando...</pre>
-      </article>
+      <div class="launcher" style="margin-top: 16px;">
+        <div class="urlbar">
+          <input id="urlInput" value="https://www.google.com" placeholder="Pegá una URL o búsqueda..." />
+          <button class="primary" onclick="openAndroid()">Abrir como Android Pixel 8</button>
+          <button class="secondary" onclick="openDesktop()">Abrir como Desktop</button>
+        </div>
 
-      <article class="card full">
-        <h2>Snapshot completo</h2>
-        <pre id="snapshot">Cargando...</pre>
-      </article>
+        <div class="quick">
+          <button onclick="setUrl('https://www.google.com')">Google</button>
+          <button onclick="setUrl('https://m.facebook.com')">Facebook mobile</button>
+          <button onclick="setUrl('https://x.com')">X/Twitter</button>
+          <button onclick="setUrl('https://www.instagram.com')">Instagram</button>
+          <button onclick="setUrl('https://web.whatsapp.com')">WhatsApp Web</button>
+        </div>
+
+        <div class="quick">
+          <button onclick="browserAction('back')">Atrás</button>
+          <button onclick="browserAction('forward')">Adelante</button>
+          <button onclick="browserAction('reload')">Recargar</button>
+          <button onclick="navigateCurrent()">Ir a URL</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Ventana activa</h2>
+      <div class="kv" id="activeBrowser">
+        <div class="k">Estado</div>
+        <div class="v">Todavía no abriste una ventana.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Información del sistema</h2>
+      <pre id="system">Cargando...</pre>
     </section>
   </main>
 
   <script>
-    let currentSnapshot = null;
+    let activeBrowserId = null;
 
-    function valueOrDash(value) {
-      if (value === undefined || value === null || value === "") return "—";
-      if (Array.isArray(value)) return value.join(", ");
-      if (typeof value === "object") return JSON.stringify(value);
-      return String(value);
+    function setUrl(url) {
+      document.getElementById("urlInput").value = url;
     }
 
-    function row(key, value) {
-      return '<div class="k">' + key + '</div><div class="v">' + valueOrDash(value) + '</div>';
+    function getUrl() {
+      return document.getElementById("urlInput").value;
     }
 
-    async function getUAData() {
-      const nav = navigator;
-      const ua = nav.userAgentData;
+    function renderActiveBrowser(data) {
+      document.getElementById("activeBrowser").innerHTML =
+        '<div class="k">ID</div><div class="v">' + data.id + '</div>' +
+        '<div class="k">Modo</div><div class="v">' + data.mode + '</div>' +
+        '<div class="k">Perfil</div><div class="v">' + data.profile + '</div>' +
+        '<div class="k">URL</div><div class="v">' + data.url + '</div>';
+    }
 
-      if (!ua) {
-        return {
-          supported: false,
-          reason: "navigator.userAgentData no está disponible en este navegador."
-        };
+    async function openAndroid() {
+      const result = await window.mobileDebug.openBrowser({
+        mode: "android",
+        url: getUrl()
+      });
+
+      activeBrowserId = result.id;
+      renderActiveBrowser(result);
+      document.getElementById("status").textContent = "Ventana Android abierta";
+    }
+
+    async function openDesktop() {
+      const result = await window.mobileDebug.openBrowser({
+        mode: "desktop",
+        url: getUrl()
+      });
+
+      activeBrowserId = result.id;
+      renderActiveBrowser(result);
+      document.getElementById("status").textContent = "Ventana Desktop abierta";
+    }
+
+    async function browserAction(action) {
+      if (!activeBrowserId) {
+        document.getElementById("status").textContent = "Primero abrí una ventana.";
+        return;
       }
 
-      const base = {
-        supported: true,
-        brands: ua.brands,
-        mobile: ua.mobile,
-        platform: ua.platform
-      };
+      const result = await window.mobileDebug.browserAction({
+        id: activeBrowserId,
+        action
+      });
 
-      if (typeof ua.getHighEntropyValues !== "function") {
-        return base;
+      if (!result.ok) {
+        document.getElementById("status").textContent = result.error || "Error";
+        return;
       }
 
-      try {
-        const high = await ua.getHighEntropyValues([
-          "architecture",
-          "bitness",
-          "model",
-          "platform",
-          "platformVersion",
-          "uaFullVersion",
-          "fullVersionList",
-          "wow64"
-        ]);
+      document.getElementById("status").textContent = "Acción ejecutada: " + action;
+    }
 
-        return {
-          ...base,
-          highEntropy: high
-        };
-      } catch (error) {
-        return {
-          ...base,
-          highEntropyError: String(error && error.message ? error.message : error)
-        };
+    async function navigateCurrent() {
+      if (!activeBrowserId) {
+        await openAndroid();
+        return;
       }
-    }
 
-    async function buildSnapshot() {
-      const uaData = await getUAData();
-      const system = window.mobileDebug
-        ? await window.mobileDebug.getSystemInfo()
-        : null;
+      const result = await window.mobileDebug.browserAction({
+        id: activeBrowserId,
+        action: "navigate",
+        url: getUrl()
+      });
 
-      const connection =
-        navigator.connection ||
-        navigator.mozConnection ||
-        navigator.webkitConnection;
+      if (!result.ok) {
+        document.getElementById("status").textContent = result.error || "Error";
+        return;
+      }
 
-      return {
-        generatedAt: new Date().toISOString(),
-        javascript: {
-          userAgent: navigator.userAgent,
-          appVersion: navigator.appVersion,
-          platform: navigator.platform,
-          vendor: navigator.vendor,
-          language: navigator.language,
-          languages: navigator.languages,
-          cookieEnabled: navigator.cookieEnabled,
-          doNotTrack: navigator.doNotTrack,
-          hardwareConcurrency: navigator.hardwareConcurrency,
-          maxTouchPoints: navigator.maxTouchPoints,
-          webdriver: navigator.webdriver,
-          pdfViewerEnabled: navigator.pdfViewerEnabled,
-          deviceMemory: navigator.deviceMemory,
-          connection: connection ? {
-            effectiveType: connection.effectiveType,
-            downlink: connection.downlink,
-            rtt: connection.rtt,
-            saveData: connection.saveData
-          } : null
-        },
-        screen: {
-          width: screen.width,
-          height: screen.height,
-          availWidth: screen.availWidth,
-          availHeight: screen.availHeight,
-          colorDepth: screen.colorDepth,
-          pixelDepth: screen.pixelDepth,
-          orientation: screen.orientation ? {
-            type: screen.orientation.type,
-            angle: screen.orientation.angle
-          } : null
-        },
-        viewport: {
-          innerWidth: window.innerWidth,
-          innerHeight: window.innerHeight,
-          outerWidth: window.outerWidth,
-          outerHeight: window.outerHeight,
-          devicePixelRatio: window.devicePixelRatio,
-          visualViewport: window.visualViewport ? {
-            width: window.visualViewport.width,
-            height: window.visualViewport.height,
-            scale: window.visualViewport.scale,
-            offsetLeft: window.visualViewport.offsetLeft,
-            offsetTop: window.visualViewport.offsetTop
-          } : null
-        },
-        uaClientHints: uaData,
-        electronSystem: system
-      };
-    }
-
-    function renderSummary(snapshot) {
-      const js = snapshot.javascript;
-      const vp = snapshot.viewport;
-      const sc = snapshot.screen;
-
-      document.getElementById("summary").innerHTML =
-        row("User-Agent", js.userAgent) +
-        row("Platform", js.platform) +
-        row("Vendor", js.vendor) +
-        row("Languages", js.languages) +
-        row("Hardware concurrency", js.hardwareConcurrency) +
-        row("Max touch points", js.maxTouchPoints) +
-        row("Device memory", js.deviceMemory) +
-        row("WebDriver", js.webdriver) +
-        row("Viewport", vp.innerWidth + " × " + vp.innerHeight) +
-        row("Outer window", vp.outerWidth + " × " + vp.outerHeight) +
-        row("Device Pixel Ratio", vp.devicePixelRatio) +
-        row("Screen", sc.width + " × " + sc.height) +
-        row("Screen available", sc.availWidth + " × " + sc.availHeight) +
-        row("Orientation", sc.orientation ? sc.orientation.type + " / " + sc.orientation.angle : "—");
+      document.getElementById("status").textContent = "Navegando...";
     }
 
     async function init() {
-      try {
-        currentSnapshot = await buildSnapshot();
+      const system = await window.mobileDebug.getSystemInfo();
+      document.getElementById("system").textContent = JSON.stringify(system, null, 2);
 
-        renderSummary(currentSnapshot);
-
-        document.getElementById("uaData").textContent =
-          JSON.stringify(currentSnapshot.uaClientHints, null, 2);
-
-        document.getElementById("system").textContent =
-          JSON.stringify(currentSnapshot.electronSystem, null, 2);
-
-        document.getElementById("snapshot").textContent =
-          JSON.stringify(currentSnapshot, null, 2);
-
-        document.getElementById("status").textContent = "App local activa";
-      } catch (error) {
-        document.getElementById("status").textContent = "Error cargando datos";
-        document.getElementById("snapshot").textContent =
-          String(error && error.stack ? error.stack : error);
-      }
-    }
-
-    async function copySnapshot() {
-      if (!currentSnapshot) return;
-      await navigator.clipboard.writeText(JSON.stringify(currentSnapshot, null, 2));
-      document.getElementById("status").textContent = "JSON copiado al portapapeles";
-    }
-
-    function downloadSnapshot() {
-      if (!currentSnapshot) return;
-
-      const blob = new Blob([JSON.stringify(currentSnapshot, null, 2)], {
-        type: "application/json"
+      window.mobileDebug.onBrowserUrlChanged((data) => {
+        if (data.id === activeBrowserId) {
+          document.getElementById("urlInput").value = data.url;
+        }
       });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "mobile-emulation-snapshot-" + Date.now() + ".json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
     }
 
     init();
