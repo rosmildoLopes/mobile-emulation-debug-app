@@ -1,17 +1,24 @@
 {
   "name": "mobile-emulation-debug-app",
+  "productName": "Mobile Emulation Debug",
   "version": "1.0.0",
-  "description": "",
+  "description": "Desktop QA tool for mobile emulation debugging and device signal inspection.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "electron",
+    "qa",
+    "mobile",
+    "debug",
+    "device",
+    "headers"
+  ],
+  "author": "Rosmildo Lopes",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
