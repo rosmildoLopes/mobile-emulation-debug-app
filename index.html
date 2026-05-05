@@ -2,137 +2,107 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Mobile Emulation Numen by Rosmi</title>
   <style>
-    :root { --bg: #09090b; --card: #111118; --accent: #22c55e; --blue: #3b82f6; --red: #ef4444; --line: #27272a; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-    
-    .sidebar { width: 380px; border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; background: #0c0c0e; }
+    :root { --bg: #09090b; --card: #111118; --accent: #22c55e; --blue: #3b82f6; --line: #27272a; --red: #ef4444; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 400px; border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; background: #0c0c0e; }
     .content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg); }
-
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-    h2 { font-size: 12px; text-transform: uppercase; color: #71717a; letter-spacing: 0.05em; margin-bottom: 15px; }
-
-    input { width: 100%; background: #000; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; outline: none; }
-    input:focus { border-color: var(--blue); }
-
-    .btn-main { background: var(--blue); color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
-    .btn-main:hover { opacity: 0.9; }
-
-    .profile-card { background: #16161e; border: 1px solid var(--line); padding: 15px; border-radius: 12px; margin-bottom: 12px; }
-    .profile-card strong { display: block; margin-bottom: 10px; font-size: 15px; }
-
-    .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .social-grid button { background: #1f1f29; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
-    .social-grid button:hover { border-color: var(--accent); background: #262633; }
-
-    .btn-del { width: 100%; margin-top: 10px; background: transparent; color: var(--red); border: 1px solid rgba(239,68,68,0.2); padding: 6px; border-radius: 6px; font-size: 11px; cursor: pointer; }
-    .btn-del:hover { background: rgba(239,68,68,0.05); border-color: var(--red); }
-
-    .session-item { border-left: 4px solid var(--accent); background: #16161e; padding: 15px; margin-bottom: 12px; border-radius: 0 10px 10px 0; }
-    .header-log { font-family: 'Consolas', monospace; font-size: 10px; color: #86efac; background: #000; padding: 10px; border-radius: 6px; margin-top: 8px; word-break: break-all; border: 1px solid #1f1f24; }
+    .card-p { background: #16161e; border: 1px solid var(--line); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+    input { width: 100%; background: #000; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; font-size: 13px; }
+    button { cursor: pointer; border-radius: 8px; font-weight: bold; border: 1px solid #334155; background: #18181b; color: #fff; padding: 8px; font-size: 12px; }
+    button:hover { border-color: var(--accent); }
+    .btn-main { background: var(--blue); color: white; border: none; width: 100%; padding: 12px; margin-bottom: 25px; font-size: 14px; }
+    .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
+    .search-group { display: flex; gap: 5px; margin-top: 10px; }
+    .session-item { border-left: 4px solid var(--accent); background: #16161e; padding: 15px; margin-bottom: 10px; border-radius: 0 8px 8px 0; }
+    .status-tag { font-size: 10px; color: #86efac; font-family: monospace; display: block; margin-top: 5px; }
   </style>
 </head>
 <body>
 
   <div class="sidebar">
-    <h2>Gestión de Perfiles</h2>
-    <input id="pName" placeholder="Nombre del cliente o cuenta...">
-    <button class="btn-main" onclick="createNewProfile()">Crear Perfil Persistente</button>
+    <h2 style="font-size:18px; margin-top:0">Configuración QA</h2>
+    <input id="pName" placeholder="Nombre del Perfil">
+    <input id="pProxy" placeholder="Proxy (ip:port o user:pass@ip:port)">
+    <button class="btn-main" onclick="save()">Crear Perfil Persistente</button>
     
-    <h2>Listado</h2>
-    <div id="pList">
-      </div>
+    <div id="pList"></div>
   </div>
 
   <div class="content">
-    <h2>Monitor de Ventanas Activas (Stealth Mode)</h2>
+    <h2 style="font-size:18px; margin-top:0">Monitor de Sesiones Activas</h2>
     <div id="sList">
-      <p style="color: #52525b; font-size: 14px;">No hay ventanas abiertas.</p>
+      <p style="color:gray">No hay ventanas abiertas.</p>
     </div>
   </div>
 
   <script>
-    // 1. Crear Perfil
-    async function createNewProfile() {
-      const input = document.getElementById('pName');
-      const name = input.value.trim();
+    async function save() {
+      const name = document.getElementById('pName').value;
+      const proxy = document.getElementById('pProxy').value;
       if(!name) return;
-
-      await window.mobileDebug.saveProfile({ 
-        id: Date.now().toString(), 
-        name: name 
-      });
-
-      input.value = '';
-      loadProfiles();
+      await window.mobileDebug.saveProfile({ id: Date.now().toString(), name, proxy });
+      document.getElementById('pName').value = '';
+      document.getElementById('pProxy').value = '';
+      load();
     }
 
-    // 2. Cargar Perfiles en Sidebar
-    async function loadProfiles() {
+    async function load() {
       const profiles = await window.mobileDebug.getProfiles();
       const cont = document.getElementById('pList');
+      cont.innerHTML = profiles.length ? '' : '<p style="color:gray; font-size:12px;">Crea un perfil para comenzar.</p>';
       
-      if (!profiles || profiles.length === 0) {
-        cont.innerHTML = '<p style="color:gray; font-size:12px;">Crea tu primer perfil para empezar.</p>';
-        return;
-      }
-
-      cont.innerHTML = profiles.map(p => `
-        <div class="profile-card">
-          <strong>👤 ${p.name}</strong>
-          <div class="social-grid">
-            <button onclick="launch('${p.id}', '${p.name}', 'https://m.facebook.com')">FACEBOOK</button>
-            <button onclick="launch('${p.id}', '${p.name}', 'https://x.com')">TWITTER</button>
-            <button onclick="launch('${p.id}', '${p.name}', 'https://www.instagram.com')">INSTAGRAM</button>
-            <button onclick="launch('${p.id}', '${p.name}', 'https://www.tiktok.com')">TIKTOK</button>
+      profiles.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'card-p';
+        div.innerHTML = `
+          <strong style="font-size:16px;">👤 ${p.name}</strong>
+          <div style="font-size:10px; color:var(--blue); margin: 5px 0;">🌐 Proxy: ${p.proxy || 'Conexión Directa'}</div>
+          
+          <div class="search-group">
+            <input id="url_${p.id}" placeholder="URL o Búsqueda..." value="https://google.com" style="margin:0">
+            <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', document.getElementById('url_${p.id}').value)">IR</button>
           </div>
-          <button class="btn-del" onclick="deleteProfile('${p.id}')">ELIMINAR PERFIL</button>
-        </div>
-      `).join('');
-    }
 
-    // 3. Lanzar Ventana
-    function launch(id, name, url) {
-      window.mobileDebug.openBrowser({ 
-        profileId: id, 
-        profileName: name, 
-        url: url 
+          <div class="social-grid">
+            <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://m.facebook.com')">FB</button>
+            <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://x.com')">X</button>
+            <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://instagram.com')">IG</button>
+            <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://tiktok.com')">TK</button>
+          </div>
+          
+          <button style="width:100%; margin-top:10px; color:var(--red); border-color:rgba(239,68,68,0.2)" onclick="del('${p.id}')">Eliminar Perfil</button>
+        `;
+        cont.appendChild(div);
       });
     }
 
-    // 4. Eliminar Perfil
-    async function deleteProfile(id) {
-      if(confirm('¿Eliminar perfil y limpiar todas sus cookies?')) {
+    function launch(id, name, proxy, url) {
+      window.mobileDebug.openBrowser({ profileId: id, profileName: name, proxy, url });
+    }
+
+    async function del(id) {
+      if(confirm('¿Borrar perfil y todas sus sesiones?')) {
         await window.mobileDebug.deleteProfile(id);
-        loadProfiles();
+        load();
       }
     }
 
-    // 5. Monitor de Ventanas (Derecha)
     window.mobileDebug.onSessionsUpdated((sessions) => {
       const cont = document.getElementById('sList');
       if(!sessions || sessions.length === 0) {
-        cont.innerHTML = '<p style="color:#52525b;">No hay ventanas abiertas.</p>';
+        cont.innerHTML = '<p style="color:gray">No hay ventanas abiertas.</p>';
         return;
       }
-
-      cont.innerHTML = sessions.map(([winId, data]) => `
+      cont.innerHTML = sessions.map(([id, data]) => `
         <div class="session-item">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:bold; color:var(--blue)">PERFIL: ${data.profileName}</span>
-            <span style="font-size:10px; background:#064e3b; color:#10b981; padding:2px 6px; border-radius:4px;">ID: ${winId}</span>
-          </div>
-          <div class="header-log">
-            <strong>Injected User-Agent:</strong><br>${data.userAgent}<br><br>
-            <strong>Hardware:</strong> Pixel 8 | CPU: ARM | Touch: Enabled
-          </div>
+          <strong>Perfil: ${data.profileName}</strong> | Proxy: ${data.proxy}
+          <span class="status-tag">Stealth: Pixel 8 Hardware Mask Active | WebGL Masked</span>
         </div>
       `).join('');
     });
 
-    // Carga inicial
-    window.onload = loadProfiles;
+    window.onload = load;
   </script>
 </body>
 </html>
