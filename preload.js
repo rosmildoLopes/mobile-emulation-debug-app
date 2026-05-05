@@ -1,10 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("mobileDebug", {
-  getSystemInfo: () => ipcRenderer.invoke("get-system-info"),
+  getProfiles: () => ipcRenderer.invoke("get-profiles"),
+  saveProfile: (p) => ipcRenderer.invoke("save-profile", p),
+  deleteProfile: (id) => ipcRenderer.invoke("delete-profile", id),
   openBrowser: (payload) => ipcRenderer.invoke("open-browser", payload),
-  browserAction: (payload) => ipcRenderer.invoke("browser-action", payload),
-  onBrowserUrlChanged: (callback) => {
-    ipcRenderer.on("browser-url-changed", (_event, data) => callback(data));
+  onSessionsUpdated: (callback) => {
+    ipcRenderer.on('sessions-updated', (event, sessions) => callback(sessions));
   }
 });
