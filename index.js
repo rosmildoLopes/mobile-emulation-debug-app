@@ -2,115 +2,105 @@ const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const Store = require("electron-store");
 
+// 1. FORZAR DNS DE GOOGLE PARA SOLUCIONAR CREEPJS
+app.commandLine.appendSwitch('resolver-getaddrinfo-allow-threads');
+app.commandLine.appendSwitch('dns-over-https-urls', 'https://dns.google/dns-query');
+
 if (require("electron-squirrel-startup")) app.quit();
 
 const store = new Store();
 let mainWindow = null;
 const activeSessions = new Map();
 
-const ANDROID_PIXEL_8 = {
-  userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36",
-  width: 412,
-  height: 915,
-  deviceScaleFactor: 3,
-  mobile: true,
-  platform: "Android"
-};
+const UA_ANDROID = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
+app.userAgentFallback = UA_ANDROID;
 
-// Manejador de autenticación de Proxy (Soporta usuario:pass)
-app.on('login', (event, webContents, request, authInfo, callback) => {
-  if (authInfo.isProxy) {
-    event.preventDefault();
-    // Intenta extraer credenciales del string de proxy guardado
-    const sesId = webContents.getURL(); 
-    // Por simplicidad, si el proxy se pasó como user:pass@ip, Electron suele manejarlo,
-    // pero este callback evita que la ventana quede colgada pidiendo pass.
-    callback('', ''); 
-  }
-});
-
-async function applyStealth(win, profile) {
+async function applyStealth(win) {
   const wc = win.webContents;
   try {
     if (!wc.debugger.isAttached()) wc.debugger.attach("1.3");
+    
+    // Parámetros corregidos para evitar el "Invalid Parameters"
     await wc.debugger.sendCommand("Network.setUserAgentOverride", {
-      userAgent: profile.userAgent,
-      platform: profile.platform,
+      userAgent: UA_ANDROID,
+      acceptLanguage: "en-US,en;q=0.9",
+      platform: "Android",
       userAgentMetadata: {
-        brands: [{ brand: "Google Chrome", version: "143" }, { brand: "Not-A.Brand", version: "24" }],
-        fullVersionList: [{ brand: "Google Chrome", version: "143.0.6478.127" }],
-        platform: profile.platform, platformVersion: "14.0.0", architecture: "arm", model: "Pixel 8", mobile: true
+        brands: [
+          { brand: "Google Chrome", version: "147" },
+          { brand: "Not-A.Brand", version: "24" },
+          { brand: "Chromium", version: "147" }
+        ],
+        fullVersionList: [
+          { brand: "Google Chrome", version: "147.0.6912.0" },
+          { brand: "Not-A.Brand", version: "24.0.0.0" },
+          { brand: "Chromium", version: "147.0.6912.0" }
+        ],
+        platform: "Android",
+        platformVersion: "14.0.0",
+        architecture: "arm",
+        model: "Pixel 8",
+        mobile: true,
+        bitness: "64",
+        wow64: false
       }
     });
+
     await wc.debugger.sendCommand("Emulation.setDeviceMetricsOverride", {
-      width: profile.width, height: profile.height, deviceScaleFactor: profile.deviceScaleFactor,
-      mobile: true, screenOrientation: { type: 'portraitPrimary', angle: 0 }
+      width: 412,
+      height: 915,
+      deviceScaleFactor: 3,
+      mobile: true,
+      screenOrientation: { type: "portraitPrimary", angle: 0 }
     });
-    await wc.debugger.sendCommand("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-    await wc.debugger.sendCommand("Emulation.setLocaleOverride", { locale: "es-419" });
-    await wc.debugger.sendCommand("Emulation.setTimezoneOverride", { timezoneId: "America/Argentina/Buenos_Aires" });
-  } catch (e) { console.error("Stealth Error:", e); }
+
+    await wc.debugger.sendCommand("Network.enable");
+  } catch (e) { console.error("Stealth Debugger Error:", e.message); }
 }
 
 async function createBrowserWindow({ url, profileId, profileName, proxy }) {
   const partition = `persist:profile_${profileId}`;
   const ses = session.fromPartition(partition);
 
-  // Configuración de Proxy
+  await ses.clearHostResolverCache();
+
   if (proxy && proxy.trim() !== "") {
     let proxyRules = proxy.trim();
     if (!proxyRules.includes("://")) proxyRules = "http://" + proxyRules;
     await ses.setProxy({ proxyRules });
+    ses.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
   } else {
     await ses.setProxy({ proxyRules: "" });
   }
 
-  // Política WebRTC para evitar filtraciones de IP real
-  if (typeof ses.setWebRTCIPHandlingPolicy === 'function') {
-    ses.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
-  } else {
-    ses.instanceConfig = { webRTCIPHandlingPolicy: 'disable_non_proxied_udp' };
-  }
-
   const win = new BrowserWindow({
-    width: ANDROID_PIXEL_8.width,
-    height: ANDROID_PIXEL_8.height,
-    title: `QA [${profileName}]`,
+    width: 412, height: 915,
     backgroundColor: "#000",
-    autoHideMenuBar: true,
     webPreferences: {
       partition: partition,
       preload: path.join(__dirname, "preload-inject.js"),
-      contextIsolation: false, // Necesario para inyectar ruido en objetos nativos
+      contextIsolation: false,
       nodeIntegration: false,
-      sandbox: false,
-      webSecurity: true
+      sandbox: false
     }
   });
 
-  // Bloqueo de Deep Links (evita que Facebook intente abrir apps externas)
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    return url.startsWith('http') ? { action: 'allow' } : { action: 'deny' };
+  win.webContents.on('commit-navigation', () => {
+    win.webContents.executeJavaScript(`
+      Object.defineProperty(navigator, 'platform', { get: () => 'Linux armv8l' });
+      Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
+    `);
   });
 
-  const winId = win.id;
-  activeSessions.set(winId, { profileName, proxy: proxy || "Directa" });
+  activeSessions.set(win.id, { profileName, proxy: String(proxy || "Directa") });
 
-  win.on('closed', () => {
-    activeSessions.delete(winId);
-    if (mainWindow) mainWindow.webContents.send('sessions-updated', Array.from(activeSessions.entries()));
-  });
+  win.on('closed', () => { activeSessions.delete(win.id); });
 
   await win.loadURL("about:blank");
-  await applyStealth(win, ANDROID_PIXEL_8);
+  await applyStealth(win);
   
-  let finalUrl = url || "https://whoer.net";
-  if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-  
-  // Pequeño timeout para asegurar que el proxy y el debugger estén listos
-  setTimeout(() => {
-    win.loadURL(finalUrl).catch(e => console.log("Error de carga (Proxy lento?):", e.message));
-  }, 200);
+  const finalUrl = url || "https://creepjs.com";
+  win.loadURL(finalUrl).catch(e => console.log("Fallo carga:", e.message));
 
   if (mainWindow) mainWindow.webContents.send('sessions-updated', Array.from(activeSessions.entries()));
 }
@@ -125,7 +115,6 @@ ipcMain.handle("save-profile", (e, p) => {
 ipcMain.handle("delete-profile", async (e, id) => {
   const ps = store.get("profiles", []).filter(p => p.id !== id);
   store.set("profiles", ps);
-  await session.fromPartition(`persist:profile_${id}`).clearStorageData();
   return ps;
 });
 ipcMain.handle("open-browser", async (e, payload) => createBrowserWindow(payload));
@@ -138,5 +127,3 @@ app.whenReady().then(() => {
   });
   mainWindow.loadFile("index.html");
 });
-
-app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

@@ -2,20 +2,23 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
+  <title>Mobile Emulation Debug - Pro Stealth</title>
   <style>
     :root { --bg: #09090b; --card: #111118; --accent: #22c55e; --blue: #3b82f6; --line: #27272a; --red: #ef4444; }
     body { font-family: system-ui, sans-serif; background: var(--bg); color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-    .sidebar { width: 400px; border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; background: #0c0c0e; }
+    .sidebar { width: 420px; border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; background: #0c0c0e; }
     .content { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg); }
     .card-p { background: #16161e; border: 1px solid var(--line); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-    input { width: 100%; background: #000; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; font-size: 13px; }
-    button { cursor: pointer; border-radius: 8px; font-weight: bold; border: 1px solid #334155; background: #18181b; color: #fff; padding: 8px; font-size: 12px; }
+    input { width: 100%; background: #000; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; font-size: 13px; outline: none; }
+    input:focus { border-color: var(--blue); }
+    button { cursor: pointer; border-radius: 8px; font-weight: bold; border: 1px solid #334155; background: #18181b; color: #fff; padding: 8px; font-size: 11px; transition: 0.2s; }
     button:hover { border-color: var(--accent); }
     .btn-main { background: var(--blue); color: white; border: none; width: 100%; padding: 12px; margin-bottom: 25px; font-size: 14px; }
     .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
     .search-group { display: flex; gap: 5px; margin-top: 10px; }
     .session-item { border-left: 4px solid var(--accent); background: #16161e; padding: 15px; margin-bottom: 10px; border-radius: 0 8px 8px 0; }
     .status-tag { font-size: 10px; color: #86efac; font-family: monospace; display: block; margin-top: 5px; }
+    h3 { font-size: 11px; text-transform: uppercase; margin: 12px 0 6px; color: #71717a; }
   </style>
 </head>
 <body>
@@ -23,10 +26,11 @@
   <div class="sidebar">
     <h2 style="font-size:18px; margin-top:0">Configuración QA</h2>
     <input id="pName" placeholder="Nombre del Perfil">
-    <input id="pProxy" placeholder="Proxy (ip:port o user:pass@ip:port)">
-    <button class="btn-main" onclick="save()">Crear Perfil Persistente</button>
+    <input id="pProxy" placeholder="Proxy (user:pass@ip:port)">
+    <button class="btn-main" onclick="save()">+ Crear Perfil Persistente</button>
     
-    <div id="pList"></div>
+    <div id="pList">
+      </div>
   </div>
 
   <div class="content">
@@ -64,14 +68,24 @@
             <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', document.getElementById('url_${p.id}').value)">IR</button>
           </div>
 
+          <h3>Redes Sociales</h3>
           <div class="social-grid">
             <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://m.facebook.com')">FB</button>
             <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://x.com')">X</button>
             <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://instagram.com')">IG</button>
             <button onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://tiktok.com')">TK</button>
           </div>
+
+          <h3>Tests de Elite (Stealth)</h3>
+          <div class="social-grid">
+            <button style="grid-column: span 2; border-color: var(--accent);" onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://creepjs.com')">CreepJS (Anti-Bot)</button>
+            <button style="grid-column: span 2; border-color: var(--accent);" onclick="launch('${p.id}', '${p.name}', '${p.proxy}', 'https://browserleaks.com/canvas')">Canvas Fingerprint</button>
+          </div>
+
+          <h3>Human Test</h3>
+          <button style="width:100%; border-color: var(--blue);" onclick="testHuman('${p.id}')">Simular Escritura Humana</button>
           
-          <button style="width:100%; margin-top:10px; color:var(--red); border-color:rgba(239,68,68,0.2)" onclick="del('${p.id}')">Eliminar Perfil</button>
+          <button style="width:100%; margin-top:15px; color:var(--red); border-color:rgba(239,68,68,0.2); font-size:10px;" onclick="del('${p.id}')">ELIMINAR PERFIL</button>
         `;
         cont.appendChild(div);
       });
@@ -79,6 +93,10 @@
 
     function launch(id, name, proxy, url) {
       window.mobileDebug.openBrowser({ profileId: id, profileName: name, proxy, url });
+    }
+
+    async function testHuman(id) {
+      alert("Para probar la escritura humana:\n1. Abre una ventana.\n2. Abre la consola (F12 o Ctrl+Shift+I).\n3. Escribe: window.humanAction.type('input', 'Hola mundo')\n\nPróximamente agregaremos inyección automática.");
     }
 
     async function del(id) {
@@ -97,7 +115,7 @@
       cont.innerHTML = sessions.map(([id, data]) => `
         <div class="session-item">
           <strong>Perfil: ${data.profileName}</strong> | Proxy: ${data.proxy}
-          <span class="status-tag">Stealth: Pixel 8 Hardware Mask Active | WebGL Masked</span>
+          <span class="status-tag">🛡️ Stealth: Pixel 8 Hardware Mask | Canvas Noise Active</span>
         </div>
       `).join('');
     });
