@@ -211,11 +211,13 @@ async function applyMobileViewport(win, fingerprint) {
       }
     });
 
+    // CORRECCIÓN: Optimizamos métricas y añadimos fitWindow para evitar el corte en menús de TikTok
     await wc.debugger.sendCommand("Emulation.setDeviceMetricsOverride", {
       width: 412,
       height: 915,
       deviceScaleFactor: 3,
-      mobile: true
+      mobile: true,
+      fitWindow: true
     });
 
     await wc.debugger.sendCommand("Emulation.setTouchEmulationEnabled", {
@@ -223,7 +225,7 @@ async function applyMobileViewport(win, fingerprint) {
       maxTouchPoints: 5
     });
 
-    console.log("📱 Viewport móvil aplicado.");
+    console.log("📱 Viewport móvil aplicado con ajuste vertical.");
   } catch (error) {
     console.error("❌ Mobile Viewport Error:", error.message);
   }
@@ -463,9 +465,10 @@ async function createBrowserWindow({ url, profileId, profileName, proxy }) {
     getFingerprint: () => enrichedFingerprint
   });
 
+  // CORRECCIÓN: Ampliamos las dimensiones físicas a 460x1000 para dar margen real al marco de Windows
   const win = new BrowserWindow({
-    width: 430,
-    height: 960,
+    width: 460,
+    height: 1000,
     show: false,
     title: `Dispositivo Emulado - ${safeProfileName}`,
     resizable: true,
