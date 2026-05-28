@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, session, netLog } = require("electron");
 const path = require("path");
 const Store = require("electron-store");
+const fs = require("fs"); // <-- NUEVO: Módulo nativo para manejo de archivos de backup
 
 app.commandLine.appendSwitch("disable-blink-features", "AutomationControlled");
 
@@ -89,6 +90,45 @@ const ANDROID_GPUS = [
     ]
   }
 ];
+
+// ─── NUEVO: FUNCIÓN AUTOMÁTICA DE RESPALDO DE PERFILES ────────────────────────
+function ejecutarBackupAutomatico() {
+  try {
+    const userDataPath = app.getPath("userData");
+    // Definimos la carpeta destino del backup dentro del directorio de la app
+    const backupDir = path.join(userDataPath, "Backups");
+    
+    // Si la carpeta de backups no existe, la creamos
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    // 1. Respaldar la base de datos de perfiles (config.json del electron-store)
+    const configPath = path.join(userDataPath, "config.json");
+    if (fs.existsSync(configPath)) {
+      const fecha = new Date().toISOString().slice(0, 10); // Formato YYYY-MM-DD
+      const destConfigPath = path.join(backupDir, `config_backup_${fecha}.json`);
+      fs.copyFileSync(configPath, destConfigPath);
+      console.log(`📦 [AUTOMÁTICO] Base de datos respaldada con éxito en: ${destConfigPath}`);
+    }
+
+    // 2. Limpieza de backups viejos: Conservar solo los últimos 7 días para no saturar el SSD
+    const archivos = fs.readdirSync(backupDir);
+    if (archivos.length > 7) {
+      archivos.sort((a, b) => {
+        return fs.statSync(path.join(backupDir, a)).birthtimeMs - fs.statSync(path.join(backupDir, b)).birthtimeMs;
+      });
+      // Borra el archivo de copia de seguridad más antiguo si excede la cuota de una semana
+      while (archivos.length > 7) {
+        const antiguo = archivos.shift();
+        fs.unlinkSync(path.join(backupDir, antiguo));
+        console.log(`🧹 [AUTOMÁTICO] Copia antigua eliminada para ahorrar espacio: ${antiguo}`);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error ejecutando el backup automático:", err.message);
+  }
+}
 
 function notifyDashboardUpdate() {
   if (mainWindow && !mainWindow.webContents.isDestroyed()) {
@@ -211,7 +251,6 @@ async function applyMobileViewport(win, fingerprint) {
       }
     });
 
-    // CORRECCIÓN: Optimizamos métricas y añadimos fitWindow para evitar el corte en menús de TikTok
     await wc.debugger.sendCommand("Emulation.setDeviceMetricsOverride", {
       width: 412,
       height: 915,
@@ -465,7 +504,6 @@ async function createBrowserWindow({ url, profileId, profileName, proxy }) {
     getFingerprint: () => enrichedFingerprint
   });
 
-  // CORRECCIÓN: Ampliamos las dimensiones físicas a 460x1000 para dar margen real al marco de Windows
   const win = new BrowserWindow({
     width: 460,
     height: 1000,
@@ -744,6 +782,9 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  // ─── LLAMADA AL INICIAR LA APP ───
+  ejecutarBackupAutomatico(); 
+
   createMainWindow();
 
   app.on("activate", () => {
