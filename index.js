@@ -1,9 +1,12 @@
 const { app, BrowserWindow, ipcMain, session, netLog } = require("electron");
 const path = require("path");
 const Store = require("electron-store");
-const fs = require("fs"); // <-- NUEVO: Módulo nativo para manejo de archivos de backup
+const fs = require("fs");
 
 app.commandLine.appendSwitch("disable-blink-features", "AutomationControlled");
+
+// ─── NUEVO: PUERTO DE DEPURACIÓN PARA ENLAZAR PLAYWRIGHT / PUPPETEER ───
+app.commandLine.appendSwitch("remote-debugging-port", "9222");
 
 if (require("electron-squirrel-startup")) app.quit();
 
