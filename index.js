@@ -680,8 +680,32 @@ ipcMain.handle("save-profile", (event, profile) => {
 });
 
 ipcMain.handle("delete-profile", async (event, id) => {
+  console.log(`🗑️ [MAIN] Iniciando proceso de eliminación para el perfil ID: ${id}`);
+
+  try {
+    // 1. Armamos la ruta exacta hacia la carpeta de almacenamiento de la partición de Electron
+    // Electron por defecto crea las carpetas "persist:profile_ID" dentro de 'Partitions' en la ruta de datos del usuario
+    const userDataPath = app.getPath("userData");
+    const partitionPath = path.join(userDataPath, "Partitions", `persist_profile_${id}`);
+
+    // 2. BORRADO FÍSICO FORZADO: Si la carpeta existe, la eliminamos de raíz
+    if (fs.existsSync(partitionPath)) {
+      console.log(`📂 [MAIN] Carpeta física detectada en: ${partitionPath}. Eliminando...`);
+      fs.rmSync(partitionPath, { recursive: true, force: true });
+      console.log(`✅ [MAIN] Carpeta de perfil eliminada por completo del almacenamiento local.`);
+    } else {
+      console.log(`ℹ️ [MAIN] No se encontró carpeta física en el almacenamiento local para este ID.`);
+    }
+  } catch (error) {
+    console.error(`⚠️ [MAIN] No se pudo borrar la carpeta del disco (puede estar en uso por Chromium):`, error.message);
+    // Nota: Si te tira este aviso, recordá cerrar la ventana del perfil móvil 2 segundos antes de borrarlo
+  }
+
+  // 3. Limpieza en la base de datos (lo que ya hacía tu código original)
   const profiles = store.get("profiles", []).filter((p) => p.id !== id);
   store.set("profiles", profiles);
+  
+  console.log(`🎉 [MAIN] Perfil ID ${id} eliminado con éxito de la base de datos.`);
   return profiles;
 });
 
